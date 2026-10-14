@@ -1,3 +1,4 @@
+
 export type AssistantCategory =
   | "restaurant"
   | "electronics"
@@ -18,10 +19,25 @@ export type AssistantBudgetType =
   | "per_person"
   | "unknown";
 
+export interface AssistantCoordinates {
+  latitude: number;
+  longitude: number;
+}
+
 export interface AssistantQuery {
   category: AssistantCategory;
 
+  /**
+   * Destination where the user wants to search.
+   * Example: "Lucknow".
+   */
   location: string;
+
+  /**
+   * User's actual current GPS location.
+   * Example: coordinates from the browser.
+   */
+  currentLocation?: AssistantCoordinates;
 
   radiusKm?: number;
 

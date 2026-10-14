@@ -17,8 +17,8 @@ import {
 import {
   extractIntentFallback,
 } from "./ai.fallback";
-import { AiProvider } from "./ai.service.js";
 
+import { AiProvider } from "./ai.service.js";
 
 const DEFAULT_MODEL =
   "llama-3.3-70b-versatile";
@@ -161,6 +161,33 @@ export class GroqProvider
         prompt,
       );
 
+    const parsedResponse =
+      parseAiResponse(
+        rawResponse,
+      );
+
+    if (parsedResponse) {
+      return {
+        message:
+          parsedResponse.message,
+
+        language:
+          parsedResponse.language ??
+          intent.language,
+
+        shouldAskClarification:
+          parsedResponse.shouldAskClarification ??
+          false,
+
+        ...(parsedResponse.clarificationQuestion
+          ? {
+              clarificationQuestion:
+                parsedResponse.clarificationQuestion,
+            }
+          : {}),
+      };
+    }
+
     return {
       message:
         cleanTextResponse(
@@ -261,6 +288,7 @@ export class GroqProvider
                   content:
                     systemPrompt,
                 },
+
                 {
                   role: "user",
                   content:
@@ -692,6 +720,78 @@ function buildResponsePrompt(
     intent,
     results,
   });
+}
+
+function parseAiResponse(
+  rawResponse: string,
+): {
+  message: string;
+  language?: AiResponse["language"];
+  shouldAskClarification?: boolean;
+  clarificationQuestion?: string;
+} | undefined {
+  if (!rawResponse?.trim()) {
+    return undefined;
+  }
+
+  const parsed =
+    parseJsonResponse(
+      rawResponse,
+    );
+
+  if (!parsed) {
+    return undefined;
+  }
+
+  const message =
+    parsed.message;
+
+  if (
+    typeof message !==
+    "string"
+  ) {
+    return undefined;
+  }
+
+  const response: {
+    message: string;
+    language?: AiResponse["language"];
+    shouldAskClarification?: boolean;
+    clarificationQuestion?: string;
+  } = {
+    message:
+      message.trim(),
+  };
+
+  if (
+    parsed.language ===
+      "en" ||
+    parsed.language ===
+      "hi" ||
+    parsed.language ===
+      "hinglish"
+  ) {
+    response.language =
+      parsed.language;
+  }
+
+  if (
+    typeof parsed.shouldAskClarification ===
+    "boolean"
+  ) {
+    response.shouldAskClarification =
+      parsed.shouldAskClarification;
+  }
+
+  if (
+    typeof parsed.clarificationQuestion ===
+    "string"
+  ) {
+    response.clarificationQuestion =
+      parsed.clarificationQuestion.trim();
+  }
+
+  return response;
 }
 
 function cleanTextResponse(
